@@ -1,0 +1,23 @@
+# Core scientific and numerical libraries
+numpy
+scipy
+scikit-learn
+
+# Deep Learning frameworks (choose both for flexibility)
+torch
+torchvision
+
+# Video and image processing
+opencv-python
+mediapipe
+
+# Face detection & embeddings
+dlib
+face_recognition
+
+# Plotting & debugging visualization
+matplotlib
+
+# Utility libraries
+tqdm
+pandas
