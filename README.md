@@ -55,6 +55,10 @@ Deepfake_Detection_Project/
 │   ├── deepfake/
 │   │     ├── cnn_detector.py
 │   │     ├── transformer_detector.py
+|   |
+|   ├── micro_expression/
+|   |       ├──micro_expression_detector.py
+|   |   
 │   │
 │   ├── fusion/
 │   │     └── decision_fusion.py

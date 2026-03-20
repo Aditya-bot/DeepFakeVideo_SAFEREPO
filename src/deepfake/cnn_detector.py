@@ -1,49 +1,28 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torchvision import models
 
-class SimpleDeepfakeCNN(nn.Module):
-    """
-    A lightweight CNN for deepfake detection.
-    Input: 128x128 RGB face image
-    Output: probability of being FAKE
-    """
 
+# ================= MODEL =================
+class ResNetDeepfake(nn.Module):
     def __init__(self):
-        super(SimpleDeepfakeCNN, self).__init__()
+        super(ResNetDeepfake, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        # Load pretrained ResNet18
+        self.model = models.resnet18(pretrained=True)
 
-        self.pool = nn.MaxPool2d(2, 2)
-        self.dropout = nn.Dropout(0.3)
-
-        self.fc1 = nn.Linear(128 * 16 * 16, 256)
-        self.fc2 = nn.Linear(256, 1)
+        # Replace final layer
+        num_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_features, 1)  # binary output
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))   # 128 -> 64
-        x = self.pool(F.relu(self.conv2(x)))   # 64 -> 32
-        x = self.pool(F.relu(self.conv3(x)))   # 32 -> 16
+        return self.model(x)
 
-        x = x.view(-1, 128 * 16 * 16)
 
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-
-        x = torch.sigmoid(self.fc2(x))  # probability of FAKE
-        return x
-
-# ---------- Inference Wrapper Function ---------- #
-
+# ================= LOAD MODEL =================
 def load_cnn_model(model_path=None, device=None):
-    """
-    Loads a trained CNN model.
-    If no model_path is provided, returns a randomly initialized model.
-    """
 
-    model = SimpleDeepfakeCNN()
+    model = ResNetDeepfake()
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -57,26 +36,23 @@ def load_cnn_model(model_path=None, device=None):
     return model
 
 
+# ================= INFERENCE =================
 def predict_frame(model, face):
     """
-    Runs deepfake prediction on a single face frame.
-
-    Args:
-        model: loaded CNN model
-        face: numpy array (128x128x3, normalized)
-
-    Returns:
-        float: fake probability (0–1)
+    face: numpy array (H, W, 3)
     """
 
     device = next(model.parameters()).device
 
-    # Convert face to tensor (B x C x H x W)
-    face_tensor = torch.tensor(face, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
+    # Convert to tensor
+    face_tensor = torch.tensor(face, dtype=torch.float32)\
+        .permute(2, 0, 1)\
+        .unsqueeze(0)
 
     face_tensor = face_tensor.to(device)
 
     with torch.no_grad():
-        prob_fake = model(face_tensor).item()
+        output = model(face_tensor)
+        prob_fake = torch.sigmoid(output).item()  # IMPORTANT
 
     return float(prob_fake)
