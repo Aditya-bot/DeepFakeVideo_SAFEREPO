@@ -1,3 +1,5 @@
+from xml.parsers.expat import model
+
 import torch
 import torch.nn as nn
 from torchvision import models
@@ -8,15 +10,25 @@ class ResNetDeepfake(nn.Module):
     def __init__(self):
         super(ResNetDeepfake, self).__init__()
 
-        # Load pretrained ResNet18
         self.model = models.resnet18(pretrained=True)
 
-        # Replace final layer
         num_features = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_features, 1)  # binary output
 
-    def forward(self, x):
-        return self.model(x)
+        # REMOVE original classifier
+        self.model.fc = nn.Identity()
+
+        # New classifier
+        self.classifier = nn.Linear(num_features, 1)
+
+    def forward(self, x, return_features=False):
+
+        features = self.model(x)  # (batch, 512)
+
+        if return_features:
+            return features
+
+        out = self.classifier(features)
+        return out
 
 
 # ================= LOAD MODEL =================
@@ -30,7 +42,16 @@ def load_cnn_model(model_path=None, device=None):
     model = model.to(device)
 
     if model_path is not None:
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        state_dict = torch.load(model_path, map_location=device)
+
+        model_dict = model.state_dict()
+
+        # Filter matching keys only
+        filtered_dict = {k: v for k, v in state_dict.items() if k in model_dict}
+
+        model_dict.update(filtered_dict)
+
+        model.load_state_dict(model_dict)
         model.eval()
 
     return model
