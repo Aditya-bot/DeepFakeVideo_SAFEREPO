@@ -4,7 +4,21 @@ import argparse
 import sys
 import torch
 import numpy as np
+import cv2
 from tqdm import tqdm
+import random
+import numpy as np
+import torch
+
+SEED = 42
+
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 # ================= IMPORTS =================
 from src.preprocessing.frame_generator import load_video_frames
@@ -14,7 +28,8 @@ from src.rppg.heart_rate_estimator import estimate_hr_quality
 from src.deepfake.cnn_detector import load_cnn_model, predict_frame
 from src.deepfake.transformer_detector import load_transformer_model
 from src.fusion.decision_fusion import fuse_predictions as fuse_decisions
-from src.micro_expression.micro_expression_detector import analyze_micro_expressions
+#from src.micro_expression.micro_expression_detector import analyze_micro_expressions
+from src.micro_expression.micro_inference import predict_micro_expression
 
 
 # ================= MAIN PIPELINE =================
@@ -59,14 +74,28 @@ def run_pipeline(
 
     # ================= 3. rPPG =================
     print("\nExtracting rPPG...")
-    hr_bpm, raw_signal = extract_rppg(face_frames)
 
-    if hr_bpm is None:
+    # FIX: Get FPS
+    cap = cv2.VideoCapture(video_path)
+    fs = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
+
+    if fs == 0:
+        fs = 30  # fallback
+
+    hr_bpm, raw_signal = extract_rppg(face_frames, fs)
+
+    # FIX: safe handling
+    if hr_bpm is None or raw_signal is None:
         hr_quality_score = 0.0
     else:
-        hr_quality_score = estimate_hr_quality(raw_signal, hr_bpm)
+        hr_quality_score = estimate_hr_quality(raw_signal, hr_bpm, fs)
 
-    print(f"HR: {hr_bpm} | Quality: {hr_quality_score:.3f}")
+    # Better print
+    if hr_bpm is not None:
+        print(f"HR: {hr_bpm:.2f} BPM | Quality: {hr_quality_score:.3f}")
+    else:
+        print(f"HR: Not detected | Quality: {hr_quality_score:.3f}")
 
     # ================= 4. LOAD CNN =================
     print("\nLoading CNN model...")
@@ -76,7 +105,7 @@ def run_pipeline(
 
     # ================= 5. MICRO-EXPRESSION =================
     print("\nAnalyzing micro-expressions...")
-    micro_expression_score = analyze_micro_expressions(face_frames)
+    micro_expression_score = predict_micro_expression(face_frames)
     print(f"Micro-expression score: {micro_expression_score:.3f}")
 
     # ================= 6. CNN INFERENCE =================
@@ -108,7 +137,7 @@ def run_pipeline(
         T = min(len(face_frames), transformer_frames)
 
         if T > 0:
-            idxs = np.linspace(0, len(face_frames)-1, T, dtype=int)
+            idxs = np.linspace(0, len(face_frames) - 1, T, dtype=int)
             selected = [face_frames[i] for i in idxs]
 
             tensor = torch.tensor(selected, dtype=torch.float32)\
@@ -138,7 +167,8 @@ def run_pipeline(
     fusion_result = fuse_decisions(
         final_visual_score,
         hr_quality_score,
-        micro_expression_score
+        micro_expression_score,
+        hr_bpm  # FIX: pass HR BPM
     )
 
     # ================= FINAL OUTPUT =================
