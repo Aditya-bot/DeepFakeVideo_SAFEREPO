@@ -1,3 +1,4 @@
+#this is a leagacy version of micro expression detection, it is not used in the final system but kept here for reference and future improvement ideas
 import cv2
 import numpy as np
 import mediapipe as mp
