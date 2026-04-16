@@ -1,0 +1,23 @@
+FINAL MULTIMODAL SYSTEM EVALUATION
+==================================================
+Total Samples : 179
+Accuracy      : 82.68%
+Precision     : 82.19%
+Recall        : 76.92%
+F1 Score      : 79.47%
+Sensitivity   : 76.92%
+Specificity   : 87.13%
+
+Confusion Matrix:
+[[88 13]
+ [18 60]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+        fake       0.82      0.77      0.79        78
+        real       0.83      0.87      0.85       101
+
+    accuracy                           0.83       179
+   macro avg       0.83      0.82      0.82       179
+weighted avg       0.83      0.83      0.83       179
