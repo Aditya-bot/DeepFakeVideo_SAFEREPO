@@ -1,3 +1,4 @@
+#legacy code for training transformer model on deepfake detection task
 import torch
 import torch.nn as nn
 import torch.optim as optim

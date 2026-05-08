@@ -1,3 +1,4 @@
+#cnn model inference code for deepfake video detection task
 import os
 import sys
 import cv2
