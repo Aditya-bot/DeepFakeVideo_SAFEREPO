@@ -1,3 +1,4 @@
+#Legacy code for transformer model, not used in final implementation but kept for reference
 import torch
 import torch.nn as nn
 

@@ -285,7 +285,6 @@ if uploaded_file is not None:
             label = result['final_label'].upper()
             verdict_class = "verdict-real" if label == "REAL" else "verdict-fake"
 
-            confidence_pct = int(result['confidence'] * 100)
             cnn_pct        = int(result['cnn_score'] * 100)
             hr_pct         = int(result['hr_quality_score'] * 100)
             micro_pct      = int(result['micro_expression_score'] * 100)
@@ -294,7 +293,6 @@ if uploaded_file is not None:
 <div class="result-card">
     <div class="result-label">AUTHENTICITY VERDICT</div>
     <div class="result-verdict {verdict_class}">{label}</div>
-    <div class="confidence-big">CONFIDENCE &nbsp;&middot;&nbsp; {confidence_pct}%</div>
     <div class="result-divider"></div>
     <div class="result-label" style="margin-bottom:1rem">SIGNAL BREAKDOWN</div>
     <div class="metric-grid">
